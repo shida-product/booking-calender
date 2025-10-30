@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約カレンダーシステム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 32px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* データリセットボタン（検証用） */
+        .reset-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 8px 12px;
+            background: #ffffff;
+            color: #1565c0;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: #e3f2fd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.25);
+        }
+
+        /* タブ切り替え */
+        .tabs {
+            display: flex;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            background: #fafafa;
+            transition: all 0.3s ease;
+            position: relative;
+            color: #757575;
+        }
+
+        .tab:hover {
+            background: #f5f5f5;
+            color: #424242;
+        }
+
+        .tab.active {
+            background: white;
+            color: #1976d2;
+            border-bottom: 3px solid #1976d2;
+        }
+
+        .tab .badge {
+            position: absolute;
+            top: 8px;
+            right: 16px;
+            background: #f44336;
+            color: white;
+            border-radius: 10px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* コンテンツエリア */
+        .content {
+            padding: 24px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 週ナビゲーション */
+        .week-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+
+        .week-nav button {
+            padding: 10px 20px;
+            background: white;
+            color: #1976d2;
+            border: 2px solid #1976d2;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .week-nav button:hover {
+            background: #1976d2;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
+        }
+
+        .week-nav .week-info {
+            font-size: 18px;
+            font-weight: 600;
+            color: #424242;
+        }
+
+        /* メニュー選択(利用者画面) */
+        .menu-selection {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+
+        .menu-selection h3 {
+            margin-bottom: 16px;
+            color: #424242;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .menu-options {
+            display: flex;
+            gap: 16px;
+        }
+
+        .menu-option {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .menu-option:hover {
+            border-color: #1976d2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(25, 118, 210, 0.12);
+        }
+
+        .menu-option.selected {
+            border-color: #1976d2;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .menu-option .menu-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #212121;
+        }
+
+        .menu-option .menu-duration {
+            font-size: 14px;
+            color: #757575;
+        }
+
+        /* カレンダー */
+        .calendar {
+            overflow-x: auto;
+            margin-top: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .calendar-table th {
+            background: linear-gradient(180deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 14px 8px;
+            font-weight: 600;
+            font-size: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .calendar-table th:last-child {
+            border-right: none;
+        }
+
+        .calendar-table th.date-header {
+            padding: 8px;
+        }
+
+        .date-header .day-name {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .date-header .date-num {
+            display: block;
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 6px;
+        }
+
+        .date-header .block-all-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .date-header .block-all-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        .calendar-table td {
+            border: 1px solid #f0f0f0;
+            padding: 0;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .time-label {
+            background: #fafafa;
+            font-weight: 600;
+            color: #616161;
+            font-size: 13px;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            border-right: 2px solid #e0e0e0;
+            padding: 12px 8px;
+        }
+
+        /* タイムスロット(施術者画面 - 15分刻み) */
+        .time-slot {
+            height: 48px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            user-select: none;
+            position: relative;
+        }
+
+        .time-slot.available {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            color: #2e7d32;
+        }
+
+        .time-slot.available:hover {
+            background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+            transform: scale(1.02);
+            box-shadow: inset 0 0 0 2px #4caf50;
+        }
+
+        .time-slot.blocked {
+            background: #f5f5f5;
+            color: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        .time-slot.blocked.removable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .time-slot.blocked.removable:hover {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .time-slot.blocked.removable:hover::after {
+            content: '解除';
+            position: absolute;
+            font-size: 11px;
+            bottom: 2px;
+            right: 4px;
+        }
+
+        .time-slot.pending {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            color: #ef6c00;
+            font-size: 13px;
+            animation: pendingPulse 2s infinite;
+        }
+
+        .time-slot.pending:hover {
+            background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%);
+            transform: scale(1.02);
+        }
+
+        @keyframes pendingPulse {
+            0%, 100% { box-shadow: inset 0 0 0 2px transparent; }
+            50% { box-shadow: inset 0 0 0 2px #ff9800; }
+        }
+
+        .time-slot.confirmed {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1565c0;
+            font-size: 13px;
+        }
+
+        .time-slot.rejected {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: #c62828;
+            font-size: 13px;
+        }
+
+        .time-slot.dragging {
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+            box-shadow: inset 0 0 0 3px #fbc02d;
+        }
+
+        /* 利用者画面 - 1時間単位 */
+        .hour-row-wrapper {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .hour-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 20px;
+            min-height: 64px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .hour-header.clickable:hover {
+            background: #f5f5f5;
+        }
+
+        .hour-header.clickable:active {
+            background: #eeeeee;
+        }
+
+        .hour-header.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .hour-time-label {
+            font-size: 13px;
+            color: #757575;
+            min-width: 80px;
+        }
+
+        .status-icon {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .status-icon.available { color: #4caf50; }
+        .status-icon.partial { color: #ff9800; }
+        .status-icon.full { color: #9e9e9e; }
+
+        .expand-icon {
+            font-size: 12px;
+            color: #757575;
+            transition: transform 0.3s;
+            position: absolute;
+            right: 20px;
+        }
+
+        .hour-row-wrapper.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* 15分刻みスロット(展開時) */
+        .quarter-slots {
+            background: #fafafa;
+            padding: 0; /* 折りたたみ時は余白なしで完全に隠す */
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+        }
+
+        .hour-row-wrapper.expanded .quarter-slots {
+            max-height: 400px;
+            padding: 8px 0; /* 展開時のみ余白を付ける */
+            border-top: 1px solid #e0e0e0; /* 見切れ対策と区切り線 */
+        }
+
+        .quarter-slot {
+            padding: 12px 40px;
+            margin: 4px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .quarter-slot.available {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            color: #2e7d32;
+        }
+
+        .quarter-slot.available:hover {
+            background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+        }
+
+        .quarter-slot.blocked {
+            background: #f5f5f5;
+            color: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        .quarter-slot.pending {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            color: #ef6c00;
+        }
+
+        .quarter-slot.confirmed {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1565c0;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 28px;
+            border-radius: 16px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #212121;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 12px;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-body .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .modal-body .info-label {
+            font-weight: 600;
+            color: #757575;
+            font-size: 14px;
+        }
+
+        .modal-body .info-value {
+            color: #212121;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .modal-body textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 8px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+
+        .modal-body label {
+            display: block;
+            margin-bottom: 8px;
+            margin-top: 16px;
+            font-weight: 600;
+            color: #424242;
+            font-size: 14px;
+        }
+
+        .modal-body select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .modal-body select:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #43a047;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53935;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #757575;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #fafafa;
+            border-color: #bdbdbd;
+        }
+
+        /* 説明テキスト */
+        .instructions {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border-left: 4px solid #1976d2;
+        }
+
+        .instructions h4 {
+            margin-bottom: 12px;
+            color: #1565c0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 6px 0;
+            color: #424242;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* デフォルトブロック時間設定 */
+        .default-block-setting {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .default-block-setting label {
+            font-weight: 600;
+            color: #424242;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .default-block-setting select {
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            background: white;
+            min-width: 120px;
+        }
+
+        .default-block-setting select:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+
+        .default-block-setting .description {
+            color: #757575;
+            font-size: 13px;
+            margin-left: auto;
+        }
+
+        /* デフォルトブロック時間設定: ボタン/ステータスの統一スタイル */
+        .default-block-setting .btn-primary {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .default-block-setting .apply-btn {
+            margin-left: 8px;
+        }
+        .default-block-setting .status-text {
+            color: #424242;
+            font-size: 13px;
+            margin-left: 12px;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                border-radius: 0;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .week-nav {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .menu-options {
+                flex-direction: column;
+            }
+
+            .calendar {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            /* 利用者画面の列幅をややコンパクトに */
+            .calendar-table th {
+                padding: 10px 4px;
+                font-size: 12px;
+            }
+            .calendar-table th.date-header { padding: 6px 4px; }
+            .date-header .day-name { font-size: 12px; }
+            .date-header .date-num { font-size: 11px; }
+            .time-label {
+                padding: 10px 6px;
+                font-size: 12px;
+            }
+            .hour-time-label { min-width: 64px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 予約カレンダーシステム</h1>
+            <p>施術者と利用者のマッチングシステム</p>
+            <button class="reset-btn" onclick="resetData()" title="保存データを全て消去して初期状態に戻します">データリセット</button>
+        </div>
+
+        <!-- タブ -->
+        <div class="tabs">
+            <div class="tab active" data-tab="provider">
+                施術者画面
+                <span class="badge" id="pendingBadge" style="display: none;">0</span>
+            </div>
+            <div class="tab" data-tab="customer">
+                利用者画面
+            </div>
+        </div>
+
+        <!-- コンテンツ -->
+        <div class="content">
+            <!-- 施術者画面 -->
+            <div class="tab-content active" id="provider-content">
+                <div class="instructions">
+                    <h4>📌 使い方</h4>
+                    <ul>
+                        <li>「受付可能」の時間枠をドラッグ&ドロップでブロック設定できます</li>
+                        <li>「×」をクリックするとブロックを解除できます</li>
+                        <li>日付下の「終日ブロック」ボタンで一日全体をブロックできます</li>
+                        <li>オレンジ色の「承認待ち」をクリックして承認/不承認を選択できます</li>
+                        <li>青色は「予約確定」です</li>
+                    </ul>
+                </div>
+
+                <div class="default-block-setting">
+                    <label for="defaultBlockDuration">予約時のデフォルトブロック時間:</label>
+                    <select id="defaultBlockDuration">
+                        <option value="15">15分</option>
+                        <option value="30">30分</option>
+                        <option value="45">45分</option>
+                        <option value="60" selected>60分</option>
+                        <option value="75">75分</option>
+                        <option value="90">90分</option>
+                        <option value="105">105分</option>
+                        <option value="120">120分</option>
+                    </select>
+                    <button id="applyDefaultBlockDuration" class="btn-primary apply-btn">適用</button>
+                    <span id="defaultBlockDurationStatus" class="status-text">適用中: 60分</span>
+                    <span class="description">ドラッグ&ドロップ時のデフォルト時間（変更可能）</span>
+                </div>
+
+                <div class="week-nav">
+                    <button id="prevWeekProvider">← 前週</button>
+                    <div class="week-info" id="weekInfoProvider"></div>
+                    <button id="nextWeekProvider">次週 →</button>
+                    <button id="openQuickBlockSheet" class="btn-primary" style="margin-left:12px;">＋ ブロック</button>
+                </div>
+
+                <div class="calendar">
+                    <table class="calendar-table" id="providerCalendar"></table>
+                </div>
+            </div>
+
+            <!-- 利用者画面 -->
+            <div class="tab-content" id="customer-content">
+                <div class="instructions">
+                    <h4>📌 使い方</h4>
+                    <ul>
+                        <li>まず施術メニューを選択してください</li>
+                        <li>1時間単位で空き状況を確認できます(○:空き、△:一部空き、×:満席)</li>
+                        <li>○または△をタップすると15分刻みの詳細が表示されます</li>
+                        <li>緑色の時間をタップして予約リクエストを送信できます</li>
+                        <li>予約リクエスト送信後、その時間帯は×表示となります</li>
+                    </ul>
+                </div>
+
+                <div class="menu-selection">
+                    <h3>施術メニューを選択</h3>
+                    <div class="menu-options">
+                        <div class="menu-option" data-menu="1">
+                            <div class="menu-name">施術①</div>
+                            <div class="menu-duration">45分</div>
+                        </div>
+                        <div class="menu-option" data-menu="2">
+                            <div class="menu-name">施術②</div>
+                            <div class="menu-duration">60分</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="week-nav">
+                    <button id="prevWeekCustomer">← 前週</button>
+                    <div class="week-info" id="weekInfoCustomer"></div>
+                    <button id="nextWeekCustomer">次週 →</button>
+                </div>
+
+                <div class="calendar">
+                    <table class="calendar-table" id="customerCalendar"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ブロック設定モーダル -->
+    <div class="modal" id="blockModal" role="dialog" aria-modal="true" aria-labelledby="blockModalTitle">
+        <div class="modal-content" tabindex="-1">
+            <div class="modal-header" id="blockModalTitle">ブロック時間を設定</div>
+            <div class="modal-body">
+                <div class="info-row">
+                    <span class="info-label">日時:</span>
+                    <span class="info-value" id="blockDateTime"></span>
+                </div>
+                <label>ブロック時間:</label>
+                <select id="blockDuration">
+                    <option value="15">15分</option>
+                    <option value="30">30分</option>
+                    <option value="45">45分</option>
+                    <option value="60">60分</option>
+                    <option value="75">75分</option>
+                    <option value="90">90分</option>
+                    <option value="105">105分</option>
+                    <option value="120">120分</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeBlockModal()">キャンセル</button>
+                <button class="btn-primary" onclick="confirmBlock()">ブロック設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 予約確認モーダル -->
+    <div class="modal" id="bookingModal" role="dialog" aria-modal="true" aria-labelledby="bookingModalTitle">
+        <div class="modal-content" tabindex="-1">
+            <div class="modal-header" id="bookingModalTitle">予約内容確認</div>
+            <div class="modal-body">
+                <div class="info-row">
+                    <span class="info-label">施術:</span>
+                    <span class="info-value" id="bookingMenu"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">日時:</span>
+                    <span class="info-value" id="bookingDateTime"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">所要時間:</span>
+                    <span class="info-value" id="bookingDuration"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeBookingModal()">キャンセル</button>
+                <button class="btn-primary" onclick="confirmBooking()">予約リクエスト送信</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 承認/不承認モーダル -->
+    <div class="modal" id="approvalModal" role="dialog" aria-modal="true" aria-labelledby="approvalModalTitle">
+        <div class="modal-content" tabindex="-1">
+            <div class="modal-header" id="approvalModalTitle">予約の承認/不承認</div>
+            <div class="modal-body">
+                <div class="info-row">
+                    <span class="info-label">施術:</span>
+                    <span class="info-value" id="approvalMenu"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">日時:</span>
+                    <span class="info-value" id="approvalDateTime"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">予約時間:</span>
+                    <span class="info-value" id="approvalCoreTime"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">前後ブロック:</span>
+                    <span class="info-value" id="approvalBufferTimes"></span>
+                </div>
+                <label>コメント:</label>
+                <textarea id="approvalComment" placeholder="利用者へのメッセージを入力してください&#10;例：移動時間の都合上、予約受付ができません&#10;〇月〇日 〇〇：〇〇－〇〇：〇〇であれば受付可能です。"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeApprovalModal()">キャンセル</button>
+                <button class="btn-danger" onclick="rejectBooking()">不承認</button>
+                <button class="btn-success" onclick="approveBooking()">承認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- クイックブロック（時間選択シート） -->
+    <div class="modal" id="quickBlockSheet" role="dialog" aria-modal="true" aria-labelledby="quickBlockTitle">
+        <div class="modal-content" tabindex="-1">
+            <div class="modal-header" id="quickBlockTitle">時間選択シート</div>
+            <div class="modal-body">
+                <label for="quickBlockDate">日付</label>
+                <select id="quickBlockDate"></select>
+                <label for="quickBlockStart">開始時刻</label>
+                <select id="quickBlockStart"></select>
+                <label for="quickBlockDuration">ブロック時間</label>
+                <select id="quickBlockDuration">
+                    <option value="15">15分</option>
+                    <option value="30">30分</option>
+                    <option value="45">45分</option>
+                    <option value="60" selected>60分</option>
+                    <option value="75">75分</option>
+                    <option value="90">90分</option>
+                    <option value="105">105分</option>
+                    <option value="120">120分</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="document.getElementById('quickBlockSheet').classList.remove('active'); document.body.style.overflow='';">キャンセル</button>
+                <button class="btn-primary" id="quickBlockConfirmBtn">ブロック設定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let currentWeek = 0;
+        let selectedMenu = null;
+        let bookings = [];
+        let blocks = [];
+        let dragStart = null;
+        let dragEnd = null;
+        let isDragging = false;
+        let selectedBookingId = null;
+        let selectedBlockSlot = null;
+        let defaultBlockDurationApplied = 60; // 適用中のデフォルトブロック時間(分)
+        let defaultBlockDurationPending = 60; // セレクトで選択中（未適用）の時間
+        // タッチ用
+        let touchLongPressTimer = null;
+        let isTouchDragging = false;
+        let lastTouchSlot = null;
+
+        const BLOCK_TIME = 15; // 予約ブロック時間(分)
+        const START_HOUR = 9;
+        const END_HOUR = 21;
+        const INTERVAL = 15; // 15分刻み
+
+        // 日付ユーティリティ
+        function getWeekDates(weekOffset) {
+            const today = new Date();
+            const currentDay = today.getDay();
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1) + (weekOffset * 7));
+            
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + i);
+                dates.push(date);
+            }
+            return dates;
+        }
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateDisplay(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${month}/${day}`;
+        }
+
+        function formatWeekInfo(dates) {
+            const startDate = dates[0];
+            const endDate = dates[6];
+            const startYear = startDate.getFullYear();
+            const startMonth = startDate.getMonth() + 1;
+            const startDay = startDate.getDate();
+            const endYear = endDate.getFullYear();
+            const endMonth = endDate.getMonth() + 1;
+            const endDay = endDate.getDate();
+            
+            if (startYear !== endYear) {
+                return `${startYear}年${startMonth}月${startDay}日〜${endYear}年${endMonth}月${endDay}日`;
+            } else if (startMonth !== endMonth) {
+                return `${startYear}年${startMonth}月${startDay}日〜${endMonth}月${endDay}日`;
+            } else {
+                return `${startYear}年${startMonth}月${startDay}日〜${endDay}日`;
+            }
+        }
+
+        function getTimeSlots() {
+            const slots = [];
+            for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+                for (let min = 0; min < 60; min += INTERVAL) {
+                    slots.push(`${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+                }
+            }
+            slots.push(`${END_HOUR}:00`);
+            return slots;
+        }
+
+        function timeToMinutes(time) {
+            const [hour, min] = time.split(':').map(Number);
+            return hour * 60 + min;
+        }
+
+        function minutesToTime(minutes) {
+            const hour = Math.floor(minutes / 60);
+            const min = minutes % 60;
+            return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+        }
+
+        function getMenuDuration(menuId) {
+            return menuId === 1 ? 45 : 60;
+        }
+
+        // 永続化: 保存
+        function persistState() {
+            localStorage.setItem('rcs_bookings', JSON.stringify(bookings));
+            localStorage.setItem('rcs_blocks', JSON.stringify(blocks));
+        }
+
+        // 検証用: データリセット
+        function resetData() {
+            if (!confirm('保存データ（予約・ブロック）をすべて削除して初期状態に戻します。よろしいですか？')) return;
+            try {
+                localStorage.removeItem('rcs_bookings');
+                localStorage.removeItem('rcs_blocks');
+            } catch (e) {}
+            bookings = [];
+            blocks = [];
+            selectedMenu = null;
+            // メニュー選択のUIリセット
+            document.querySelectorAll('.menu-option').forEach(o => o.classList.remove('selected'));
+            // 再描画
+            renderCalendar(true);
+            renderCalendar(false);
+            updatePendingBadge();
+            alert('データをリセットしました。');
+        }
+
+        // 永続化: 復元
+        function restoreState() {
+            try {
+                bookings = JSON.parse(localStorage.getItem('rcs_bookings') || '[]');
+                blocks = JSON.parse(localStorage.getItem('rcs_blocks') || '[]');
+            } catch (e) {
+                bookings = [];
+                blocks = [];
+            }
+        }
+
+        // ブロック確認
+        function isBlocked(date, time) {
+            const dateStr = formatDate(date);
+            return blocks.some(block => 
+                block.date === dateStr && 
+                timeToMinutes(time) >= timeToMinutes(block.startTime) && 
+                timeToMinutes(time) < timeToMinutes(block.endTime)
+            );
+        }
+
+        // 範囲内がすべてブロック済みかチェック
+        function isAllBlockedInRange(dateStr, startTime, endTime) {
+            const startMinutes = timeToMinutes(startTime);
+            const endMinutes = timeToMinutes(endTime);
+            const slots = getTimeSlots();
+            
+            // 範囲内のすべてのスロットをチェック
+            for (let i = 0; i < slots.length - 1; i++) {
+                const slotTime = slots[i];
+                const slotMinutes = timeToMinutes(slotTime);
+                
+                if (slotMinutes >= startMinutes && slotMinutes < endMinutes) {
+                    const date = new Date(dateStr + 'T00:00:00');
+                    if (!isBlocked(date, slotTime)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 予約確認(不承認は除外)
+        function getBookingAtSlot(date, time) {
+            const dateStr = formatDate(date);
+            return bookings.find(booking => 
+                booking.status !== 'rejected' &&
+                booking.date === dateStr && 
+                timeToMinutes(time) >= timeToMinutes(booking.startTime) && 
+                timeToMinutes(time) < timeToMinutes(booking.endTime)
+            );
+        }
+
+        // 予約可能チェック(ブロック時間を考慮)
+        function canBook(date, startTime, duration) {
+            const dateStr = formatDate(date);
+            const startMinutes = timeToMinutes(startTime);
+            const menuDuration = duration;
+            
+            const isFirstSlot = startMinutes === START_HOUR * 60;
+            const bufferForAvailability = defaultBlockDurationApplied;
+            const isLastSlot = startMinutes + menuDuration + bufferForAvailability > END_HOUR * 60;
+            
+            const checkStart = isFirstSlot ? startMinutes : startMinutes - bufferForAvailability;
+            const checkEnd = isLastSlot ? startMinutes + menuDuration : startMinutes + menuDuration + bufferForAvailability;
+            
+            const slots = getTimeSlots();
+            for (let i = 0; i < slots.length - 1; i++) {
+                const slotMinutes = timeToMinutes(slots[i]);
+                if (slotMinutes >= checkStart && slotMinutes < checkEnd) {
+                    const time = slots[i];
+                    if (isBlocked(date, time) || getBookingAtSlot(date, time)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 1時間枠の状態判定(利用者画面用)
+        function getHourSlotStatus(date, hour) {
+            if (!selectedMenu) return 'unavailable';
+            
+            const duration = getMenuDuration(selectedMenu);
+            const quarters = [0, 15, 30, 45];
+            let availableCount = 0;
+            
+            quarters.forEach(min => {
+                const time = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+                if (canBook(date, time, duration)) {
+                    availableCount++;
+                }
+            });
+            
+            if (availableCount === 4) return 'available';
+            if (availableCount === 0) return 'full';
+            return 'partial';
+        }
+
+        // カレンダー描画 - メイン関数
+        function renderCalendar(isProvider) {
+            const dates = getWeekDates(currentWeek);
+            const calendarId = isProvider ? 'providerCalendar' : 'customerCalendar';
+            const calendar = document.getElementById(calendarId);
+            const weekInfo = document.getElementById(isProvider ? 'weekInfoProvider' : 'weekInfoCustomer');
+            
+            weekInfo.textContent = formatWeekInfo(dates);
+            
+            if (isProvider) {
+                calendar.innerHTML = renderProviderCalendar(dates);
+                attachProviderEvents();
+            } else {
+                calendar.innerHTML = renderCustomerCalendar(dates);
+                attachCustomerEvents();
+            }
+        }
+
+        // 施術者画面 - 15分刻み全表示
+        function renderProviderCalendar(dates) {
+            const slots = getTimeSlots();
+            const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+            
+            let html = '<thead><tr><th>時間</th>';
+            dates.forEach((date, i) => {
+                html += `<th class="date-header">
+                    <span class="day-name">${dayNames[i]}</span>
+                    <span class="date-num">${formatDateDisplay(date)}</span>
+                    <button class="block-all-btn" data-date="${formatDate(date)}">終日ブロック</button>
+                </th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            slots.slice(0, -1).forEach(time => {
+                html += `<tr><td class="time-label">${time}</td>`;
+                dates.forEach(date => {
+                    html += renderProviderTimeSlot(date, time);
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            return html;
+        }
+
+        // 施術者画面 - 個別タイムスロット
+        function renderProviderTimeSlot(date, time) {
+            const dateStr = formatDate(date);
+            const displayDate = formatDateDisplay(date);
+            const blocked = isBlocked(date, time);
+            const booking = getBookingAtSlot(date, time);
+            
+            let className = 'time-slot';
+            let content = '';
+            let dataAttrs = `data-date="${dateStr}" data-time="${time}"`;
+            
+            if (booking) {
+                if (booking.status === 'pending') {
+                    className += ' pending';
+                    content = '承認待ち';
+                } else if (booking.status === 'confirmed') {
+                    className += ' confirmed';
+                    content = '予約済';
+                } else if (booking.status === 'rejected') {
+                    className += ' rejected';
+                    content = '不承認';
+                }
+                dataAttrs += ` data-booking-id="${booking.id}"`;
+            } else if (blocked) {
+                className += ' blocked removable';
+                content = '×';
+            } else {
+                className += ' available';
+                content = '○';
+            }
+            
+            return `<td><div class="${className}" ${dataAttrs}>${content}</div></td>`;
+        }
+
+        // 利用者画面 - 1時間単位+展開
+        function renderCustomerCalendar(dates) {
+            const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+            
+            let html = '<thead><tr><th>時間</th>';
+            dates.forEach((date, i) => {
+                html += `<th>${dayNames[i]}<br>${formatDateDisplay(date)}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // 1時間単位で描画
+            for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+                html += `<tr><td class="time-label">${hour}:00~</td>`;
+                dates.forEach(date => {
+                    html += renderCustomerHourSlot(date, hour);
+                });
+                html += '</tr>';
+            }
+            
+            html += '</tbody>';
+            return html;
+        }
+
+        // 利用者画面 - 1時間スロット
+        function renderCustomerHourSlot(date, hour) {
+            const dateStr = formatDate(date);
+            const status = getHourSlotStatus(date, hour);
+            
+            let statusIcon = '';
+            let statusClass = '';
+            let clickable = false;
+            
+            if (status === 'available') {
+                statusIcon = '○';
+                statusClass = 'available';
+                clickable = true;
+            } else if (status === 'partial') {
+                statusIcon = '△';
+                statusClass = 'partial';
+                clickable = true;
+            } else if (status === 'full') {
+                statusIcon = '×';
+                statusClass = 'full';
+                clickable = false;
+            } else {
+                statusIcon = '-';
+                statusClass = 'unavailable';
+                clickable = false;
+            }
+            
+            const headerClass = clickable ? 'hour-header clickable' : 'hour-header disabled';
+            const expandIcon = clickable ? '<span class="expand-icon">▼</span>' : '';
+            
+            let html = `
+                <td>
+                    <div class="hour-row-wrapper" data-date="${dateStr}" data-hour="${hour}">
+                        <div class="${headerClass}" ${clickable ? `onclick="toggleHourSlot(this)"` : ''}>
+                            <span class="status-icon ${statusClass}">${statusIcon}</span>
+                            ${expandIcon}
+                        </div>
+                        ${clickable ? renderQuarterSlots(date, hour) : ''}
+                    </div>
+                </td>
+            `;
+            
+            return html;
+        }
+
+        // 15分刻みスロット(展開時)
+        function renderQuarterSlots(date, hour) {
+            const quarters = [0, 15, 30, 45];
+            const duration = getMenuDuration(selectedMenu);
+            
+            let html = '<div class="quarter-slots">';
+            
+            quarters.forEach(min => {
+                const time = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+                const dateStr = formatDate(date);
+                
+                let className = 'quarter-slot';
+                let content = `○ ${time}`;
+                let onclick = '';
+                
+                if (canBook(date, time, duration)) {
+                    className += ' available';
+                    onclick = `onclick="handleCustomerSlotClick('${dateStr}', '${time}')"`;
+                } else {
+                    className += ' blocked';
+                    content = `× ${time}`;
+                }
+                
+                html += `<div class="${className}" ${onclick}>${content}</div>`;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // 1時間スロットの展開/折りたたみ
+        function toggleHourSlot(headerElement) {
+            const wrapper = headerElement.closest('.hour-row-wrapper');
+            const isExpanded = wrapper.classList.contains('expanded');
+            
+            // 全ての他の行を閉じる(アコーディオン)
+            document.querySelectorAll('.hour-row-wrapper.expanded').forEach(w => {
+                if (w !== wrapper) {
+                    w.classList.remove('expanded');
+                }
+            });
+            
+            // 現在の行をトグル
+            if (isExpanded) {
+                wrapper.classList.remove('expanded');
+            } else {
+                wrapper.classList.add('expanded');
+                
+                // スクロール
+                setTimeout(() => {
+                    const quarterSlots = wrapper.querySelector('.quarter-slots');
+                    if (quarterSlots) {
+                        quarterSlots.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'nearest' 
+                        });
+                    }
+                }, 100);
+            }
+        }
+
+        // 利用者 - スロットクリック
+        function handleCustomerSlotClick(date, time) {
+            if (!selectedMenu) {
+                alert('施術メニューを選択してください');
+                return;
+            }
+            showBookingModal(date, time);
+        }
+
+        // 施術者画面イベント
+        function attachProviderEvents() {
+            const slots = document.querySelectorAll('#provider-content .time-slot');
+            
+            slots.forEach(slot => {
+                // ドラッグ&ドロップ
+                slot.addEventListener('mousedown', handleDragStart);
+                slot.addEventListener('mouseenter', handleDragOver);
+                slot.addEventListener('mouseup', handleDragEnd);
+                // タッチ対応（長押し→ドラッグ）
+                slot.addEventListener('touchstart', handleTouchStart, { passive: false });
+                slot.addEventListener('touchmove', handleTouchMove, { passive: false });
+                slot.addEventListener('touchend', handleTouchEnd);
+                
+                // 承認待ちクリック
+                if (slot.classList.contains('pending')) {
+                    slot.addEventListener('click', handlePendingClick);
+                }
+                
+                // ブロック解除
+                if (slot.classList.contains('removable')) {
+                    slot.addEventListener('click', handleBlockRemove);
+                }
+            });
+
+            // 終日ブロックボタン
+            const blockAllBtns = document.querySelectorAll('.block-all-btn');
+            blockAllBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleBlockAllDay(btn.dataset.date);
+                });
+            });
+
+            // クイックブロックシート
+            const openQuick = document.getElementById('openQuickBlockSheet');
+            if (openQuick) {
+                openQuick.addEventListener('click', openQuickBlockSheet);
+            }
+        }
+
+        // 利用者画面イベント(既にonclick属性で設定済み)
+        function attachCustomerEvents() {
+            // 必要に応じて追加のイベントリスナーを設定
+        }
+
+        // ブロック解除（1枠毎に解除）
+        function handleBlockRemove(e) {
+            e.stopPropagation();
+            const slot = e.target;
+            const date = slot.dataset.date;
+            const time = slot.dataset.time;
+            
+            const timeMinutes = timeToMinutes(time);
+            const newBlocks = [];
+            
+            blocks.forEach(block => {
+                if (block.date !== date) {
+                    newBlocks.push(block);
+                    return;
+                }
+                
+                const blockStart = timeToMinutes(block.startTime);
+                const blockEnd = timeToMinutes(block.endTime);
+                
+                // クリックした時間枠がこのブロックに含まれているかチェック
+                if (timeMinutes >= blockStart && timeMinutes < blockEnd) {
+                    // ブロックを分割して、クリックした1枠だけを除外
+                    if (blockStart < timeMinutes) {
+                        // 前半のブロックを追加
+                        newBlocks.push({
+                            id: Date.now() + Math.random(),
+                            date: block.date,
+                            startTime: block.startTime,
+                            endTime: time
+                        });
+                    }
+                    if (timeMinutes + INTERVAL < blockEnd) {
+                        // 後半のブロックを追加
+                        newBlocks.push({
+                            id: Date.now() + Math.random(),
+                            date: block.date,
+                            startTime: minutesToTime(timeMinutes + INTERVAL),
+                            endTime: block.endTime
+                        });
+                    }
+                    // クリックした1枠（timeMinutes から timeMinutes + INTERVAL）は追加しない（解除される）
+                } else {
+                    // 対象外のブロックはそのまま追加
+                    newBlocks.push(block);
+                }
+            });
+            
+            blocks = newBlocks;
+            renderCalendar(true);
+            renderCalendar(false);
+        }
+
+        // 終日ブロック
+        function handleBlockAllDay(dateStr) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const displayDate = `${month}/${day}`;
+            
+            if (!confirm(`${displayDate}を終日ブロックしますか?`)) {
+                return;
+            }
+            
+            blocks = blocks.filter(block => block.date !== dateStr);
+            
+            blocks.push({
+                id: Date.now(),
+                date: dateStr,
+                startTime: `${String(START_HOUR).padStart(2, '0')}:00`,
+                endTime: `${String(END_HOUR).padStart(2, '0')}:00`
+            });
+            
+            renderCalendar(true);
+            renderCalendar(false);
+        }
+
+        // ドラッグ開始
+        function handleDragStart(e) {
+            const slot = e.target;
+            // pending, confirmedはドラッグ不可
+            // blocked（ブロック済み）はremovable（解除可能）ならドラッグ可
+            if (slot.classList.contains('pending') || 
+                slot.classList.contains('confirmed') ||
+                (slot.classList.contains('blocked') && !slot.classList.contains('removable'))) {
+                return;
+            }
+            
+            isDragging = true;
+            dragStart = { date: slot.dataset.date, time: slot.dataset.time };
+            slot.classList.add('dragging');
+        }
+
+        // ドラッグ中
+        function handleDragOver(e) {
+            if (!isDragging) return;
+            const slot = e.target;
+            if (!slot.classList.contains('time-slot')) return;
+            // pending, confirmedはドラッグ不可
+            // blocked（ブロック済み）はremovable（解除可能）ならドラッグ可
+            if (slot.classList.contains('pending') || 
+                slot.classList.contains('confirmed') ||
+                (slot.classList.contains('blocked') && !slot.classList.contains('removable'))) {
+                return;
+            }
+            
+            slot.classList.add('dragging');
+        }
+
+        // 範囲内のブロックを解除する
+        function removeBlocksInRange(dateStr, startTime, endTime) {
+            const startMinutes = timeToMinutes(startTime);
+            const endMinutes = timeToMinutes(endTime);
+            // 範囲内のすべてのブロックを一度に処理
+            const newBlocks = [];
+            
+            blocks.forEach(block => {
+                if (block.date !== dateStr) {
+                    // 別の日付のブロックはそのまま追加
+                    newBlocks.push(block);
+                    return;
+                }
+                
+                const blockStart = timeToMinutes(block.startTime);
+                const blockEnd = timeToMinutes(block.endTime);
+                
+                // ブロックと範囲の重複をチェック
+                const overlapStart = Math.max(blockStart, startMinutes);
+                const overlapEnd = Math.min(blockEnd, endMinutes);
+                
+                if (overlapStart < overlapEnd) {
+                    // ブロックと範囲が重複している
+                    // ブロックを分割して、重複部分を除外
+                    if (blockStart < overlapStart) {
+                        // 前半のブロックを追加（範囲の前の部分）
+                        newBlocks.push({
+                            id: Date.now() + Math.random(),
+                            date: block.date,
+                            startTime: block.startTime,
+                            endTime: minutesToTime(overlapStart)
+                        });
+                    }
+                    if (overlapEnd < blockEnd) {
+                        // 後半のブロックを追加（範囲の後の部分）
+                        newBlocks.push({
+                            id: Date.now() + Math.random() + 1,
+                            date: block.date,
+                            startTime: minutesToTime(overlapEnd),
+                            endTime: block.endTime
+                        });
+                    }
+                    // 重複部分（overlapStart から overlapEnd）は追加しない（解除される）
+                } else {
+                    // ブロックと範囲が重複していない場合はそのまま追加
+                    newBlocks.push(block);
+                }
+            });
+            
+            blocks = newBlocks;
+        }
+
+        // ドラッグ終了
+        function handleDragEnd(e) {
+            if (!isDragging) return;
+            
+            const slot = e.target;
+            if (!slot.classList.contains('time-slot')) {
+                isDragging = false;
+                clearDragging();
+                return;
+            }
+            
+            dragEnd = { date: slot.dataset.date, time: slot.dataset.time };
+            
+            if (dragStart.date !== dragEnd.date) {
+                alert('同じ日付内でのみブロック設定できます');
+                isDragging = false;
+                clearDragging();
+                return;
+            }
+            
+            let startTime = dragStart.time;
+            let endTime = dragEnd.time;
+            const startMinutes = timeToMinutes(startTime);
+            const endMinutes = timeToMinutes(endTime);
+            
+            if (startMinutes > endMinutes) {
+                [startTime, endTime] = [endTime, startTime];
+            }
+            
+            // 終了時間を次のスロットの開始時間に調整（15分刻みの最後のスロットを含む）
+            const actualEndMinutes = timeToMinutes(endTime) + INTERVAL;
+            const actualEndTime = minutesToTime(actualEndMinutes);
+            
+            // 範囲内がすべてブロック済みかチェック
+            if (isAllBlockedInRange(dragStart.date, startTime, actualEndTime)) {
+                // すべてブロック済みなので解除
+                removeBlocksInRange(dragStart.date, startTime, actualEndTime);
+                renderCalendar(true);
+                renderCalendar(false);
+            } else {
+                // ブロック設定モーダルを表示
+                dragEnd = { date: dragStart.date, time: endTime };
+                showBlockModal();
+            }
+            
+            isDragging = false;
+        }
+
+        // タッチ: 長押し開始
+        function handleTouchStart(e) {
+            const slot = e.currentTarget;
+            // pending, confirmedはドラッグ不可
+            if (slot.classList.contains('pending') || slot.classList.contains('confirmed')) return;
+            if (slot.classList.contains('blocked') && !slot.classList.contains('removable')) return;
+            if (touchLongPressTimer) clearTimeout(touchLongPressTimer);
+            lastTouchSlot = null;
+            isTouchDragging = false;
+            touchLongPressTimer = setTimeout(() => {
+                isTouchDragging = true;
+                isDragging = true;
+                dragStart = { date: slot.dataset.date, time: slot.dataset.time };
+                slot.classList.add('dragging');
+            }, 450);
+        }
+
+        // タッチ: ドラッグ中
+        function handleTouchMove(e) {
+            if (!isTouchDragging) {
+                if (touchLongPressTimer) e.preventDefault(); // 長押し判定中はスクロール抑止
+                return;
+            }
+            e.preventDefault();
+            const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!el) return;
+            const slot = el.closest && el.closest('.time-slot');
+            if (!slot) return;
+            if (slot.dataset.date !== dragStart.date) return;
+            if (slot.classList.contains('pending') || slot.classList.contains('confirmed')) return;
+            if (slot.classList.contains('blocked') && !slot.classList.contains('removable')) return;
+            if (lastTouchSlot === slot) return;
+            lastTouchSlot = slot;
+            slot.classList.add('dragging');
+        }
+
+        // タッチ: 終了
+        function handleTouchEnd() {
+            if (touchLongPressTimer) {
+                clearTimeout(touchLongPressTimer);
+                touchLongPressTimer = null;
+            }
+            if (!isTouchDragging) return; // 長押しでなければ無視
+            isTouchDragging = false;
+            if (!isDragging) return;
+            const slot = lastTouchSlot;
+            if (!dragStart || !slot) { clearDragging(); isDragging = false; dragStart = null; dragEnd = null; return; }
+            dragEnd = { date: slot.dataset.date, time: slot.dataset.time };
+            if (dragStart.date !== dragEnd.date) {
+                alert('同じ日付内でのみブロック設定できます');
+                isDragging = false;
+                clearDragging();
+                dragStart = null; dragEnd = null;
+                return;
+            }
+            let startTime = dragStart.time;
+            let endTime = dragEnd.time;
+            const startMinutes = timeToMinutes(startTime);
+            const endMinutes = timeToMinutes(endTime);
+            if (startMinutes > endMinutes) [startTime, endTime] = [endTime, startTime];
+            const actualEndMinutes = timeToMinutes(endTime) + INTERVAL;
+            const actualEndTime = minutesToTime(actualEndMinutes);
+            if (isAllBlockedInRange(dragStart.date, startTime, actualEndTime)) {
+                removeBlocksInRange(dragStart.date, startTime, actualEndTime);
+                renderCalendar(true);
+                renderCalendar(false);
+            } else {
+                dragEnd = { date: dragStart.date, time: endTime };
+                showBlockModal();
+            }
+            isDragging = false;
+            clearDragging();
+        }
+
+        function clearDragging() {
+            document.querySelectorAll('.dragging').forEach(el => {
+                el.classList.remove('dragging');
+            });
+        }
+
+        // ブロックモーダル
+        function showBlockModal() {
+            const modal = document.getElementById('blockModal');
+            const dates = getWeekDates(currentWeek);
+            const date = dates.find(d => formatDate(d) === dragStart.date);
+            
+            const startTime = dragStart.time;
+            const endTime = dragEnd ? dragEnd.time : startTime;
+            // ドラッグした範囲とデフォルト値のうち大きい方を初期値として使用
+            const dragDuration = (timeToMinutes(endTime) - timeToMinutes(startTime) + INTERVAL);
+            const duration = Math.max(dragDuration, defaultBlockDurationApplied);
+            
+            document.getElementById('blockDateTime').textContent = 
+                `${date.getMonth() + 1}月${date.getDate()}日 ${startTime}〜`;
+            document.getElementById('blockDuration').value = duration;
+            
+            selectedBlockSlot = { date: dragStart.date, startTime, duration };
+            openModal(modal, { primary: confirmBlock });
+            clearDragging();
+        }
+
+        function closeBlockModal() {
+            document.getElementById('blockModal').classList.remove('active');
+            selectedBlockSlot = null;
+            clearDragging();
+            document.body.style.overflow = '';
+        }
+
+        function confirmBlock() {
+            if (!selectedBlockSlot) return;
+            
+            const duration = parseInt(document.getElementById('blockDuration').value);
+            const startMinutes = timeToMinutes(selectedBlockSlot.startTime);
+            const endMinutes = Math.min(startMinutes + duration, END_HOUR * 60);
+            const endTime = minutesToTime(endMinutes);
+            
+            if (startMinutes + duration > END_HOUR * 60) {
+                alert(`営業時間は${END_HOUR}:00までです。ブロック時間を${endTime}まで調整しました。`);
+            }
+            
+            blocks.push({
+                id: Date.now(),
+                date: selectedBlockSlot.date,
+                startTime: selectedBlockSlot.startTime,
+                endTime: endTime
+            });
+            
+            closeBlockModal();
+            renderCalendar(true);
+            renderCalendar(false);
+            persistState();
+        }
+
+        // 予約モーダル
+        function showBookingModal(date, time) {
+            const modal = document.getElementById('bookingModal');
+            const dates = getWeekDates(currentWeek);
+            const dateObj = dates.find(d => formatDate(d) === date);
+            const duration = getMenuDuration(selectedMenu);
+            const menuName = selectedMenu === 1 ? '施術①' : '施術②';
+
+            document.getElementById('bookingMenu').textContent = `${menuName}(${duration}分)`;
+            document.getElementById('bookingDateTime').textContent = 
+                `${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日','月','火','水','木','金','土'][dateObj.getDay()]})${time}〜${minutesToTime(timeToMinutes(time) + duration)}`;
+            document.getElementById('bookingDuration').textContent = `${duration}分`;
+            
+            selectedBookingId = { date, time, menuId: selectedMenu, duration };
+            openModal(modal, { primary: confirmBooking });
+        }
+
+        function closeBookingModal() {
+            document.getElementById('bookingModal').classList.remove('active');
+            selectedBookingId = null;
+            document.body.style.overflow = '';
+        }
+
+        function confirmBooking() {
+            if (!selectedBookingId) return;
+            
+            const { date, time, menuId, duration } = selectedBookingId;
+            const startMinutes = timeToMinutes(time);
+            
+            const bufferDuration = defaultBlockDurationApplied;
+            const isFirstSlot = startMinutes === START_HOUR * 60;
+            const isLastSlot = startMinutes + duration + bufferDuration > END_HOUR * 60;
+            
+            const actualStart = isFirstSlot ? startMinutes : startMinutes - bufferDuration;
+            const actualEnd = isLastSlot ? startMinutes + duration : startMinutes + duration + bufferDuration;
+            
+            // 予約レコード（承認待ち）を作成
+            const booking = {
+                id: Date.now(),
+                date: date,
+                startTime: minutesToTime(actualStart),
+                endTime: minutesToTime(actualEnd),
+                menuId: menuId,
+                status: 'pending',
+                comment: '',
+                bufferDuration: bufferDuration,
+                coreStartTime: minutesToTime(startMinutes),
+                coreEndTime: minutesToTime(startMinutes + duration)
+            };
+            bookings.push(booking);
+            
+            closeBookingModal();
+            renderCalendar(true);
+            renderCalendar(false);
+            updatePendingBadge();
+            persistState();
+        }
+
+        // 承認待ちクリック
+        function handlePendingClick(e) {
+            const slot = e.target;
+            const bookingId = parseInt(slot.dataset.bookingId);
+            const booking = bookings.find(b => b.id === bookingId);
+            
+            if (booking) {
+                showApprovalModal(booking);
+            }
+        }
+
+        // 承認モーダル
+        function showApprovalModal(booking) {
+            const modal = document.getElementById('approvalModal');
+            const dates = getWeekDates(currentWeek);
+            const date = dates.find(d => formatDate(d) === booking.date);
+            const menuName = booking.menuId === 1 ? '施術①' : '施術②';
+            const duration = getMenuDuration(booking.menuId);
+            
+            document.getElementById('approvalMenu').textContent = `${menuName}(${duration}分)`;
+            document.getElementById('approvalDateTime').textContent = 
+                `${date.getMonth() + 1}月${date.getDate()}日(${['日','月','火','水','木','金','土'][date.getDay()]})${booking.startTime}〜`;
+            // 予約時間と前後ブロック時間の明記
+            const hasFrontBuffer = !!booking.coreStartTime && booking.startTime !== booking.coreStartTime;
+            const hasBackBuffer = !!booking.coreEndTime && booking.endTime !== booking.coreEndTime;
+            const coreTimeText = `${booking.coreStartTime || booking.startTime}〜${booking.coreEndTime || booking.endTime}`;
+            document.getElementById('approvalCoreTime').textContent = coreTimeText;
+            const frontText = hasFrontBuffer ? `${booking.startTime}〜${booking.coreStartTime}` : 'なし';
+            const backText = hasBackBuffer ? `${booking.coreEndTime}〜${booking.endTime}` : 'なし';
+            document.getElementById('approvalBufferTimes').textContent = `前:${frontText} / 後:${backText}`;
+            document.getElementById('approvalComment').value = '';
+            
+            selectedBookingId = booking.id;
+            openModal(modal, {});
+        }
+
+        function closeApprovalModal() {
+            document.getElementById('approvalModal').classList.remove('active');
+            selectedBookingId = null;
+            document.body.style.overflow = '';
+        }
+
+        function approveBooking() {
+            const booking = bookings.find(b => b.id === selectedBookingId);
+            if (booking) {
+                booking.status = 'confirmed';
+                booking.comment = document.getElementById('approvalComment').value;
+                closeApprovalModal();
+                renderCalendar(true);
+                renderCalendar(false);
+                updatePendingBadge();
+                alert('予約を承認しました');
+                persistState();
+            }
+        }
+
+        function rejectBooking() {
+            const booking = bookings.find(b => b.id === selectedBookingId);
+            if (booking) {
+                booking.status = 'rejected';
+                booking.comment = document.getElementById('approvalComment').value;
+                closeApprovalModal();
+                renderCalendar(true);
+                renderCalendar(false);
+                updatePendingBadge();
+                alert('予約を不承認にしました');
+                persistState();
+            }
+        }
+
+        // バッジ更新
+        function updatePendingBadge() {
+            const dates = getWeekDates(currentWeek);
+            const weekDates = dates.map(d => formatDate(d));
+            
+            const count = bookings.filter(b => 
+                b.status === 'pending' && weekDates.includes(b.date)
+            ).length;
+            
+            const badge = document.getElementById('pendingBadge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // タブ切り替え
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`${tabName}-content`).classList.add('active');
+                
+                renderCalendar(tabName === 'provider');
+            });
+        });
+
+        // メニュー選択
+        document.querySelectorAll('.menu-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.menu-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedMenu = parseInt(option.dataset.menu);
+                renderCalendar(false);
+            });
+        });
+
+        // デフォルトブロック時間設定
+        const defaultBlockDurationSelect = document.getElementById('defaultBlockDuration');
+        const applyDefaultBlockDurationBtn = document.getElementById('applyDefaultBlockDuration');
+        const defaultBlockDurationStatus = document.getElementById('defaultBlockDurationStatus');
+        if (defaultBlockDurationSelect) {
+            // 初期値をpendingへ
+            defaultBlockDurationPending = parseInt(defaultBlockDurationSelect.value);
+            // ステータス初期表示
+            if (defaultBlockDurationStatus) {
+                defaultBlockDurationStatus.textContent = `適用中: ${defaultBlockDurationApplied}分`;
+            }
+            // セレクト変更時はpendingのみ更新（未適用）
+            defaultBlockDurationSelect.addEventListener('change', (e) => {
+                defaultBlockDurationPending = parseInt(e.target.value);
+            });
+        }
+        if (applyDefaultBlockDurationBtn) {
+            applyDefaultBlockDurationBtn.addEventListener('click', () => {
+                defaultBlockDurationApplied = defaultBlockDurationPending;
+                if (defaultBlockDurationStatus) {
+                    defaultBlockDurationStatus.textContent = `適用中: ${defaultBlockDurationApplied}分`;
+                }
+            });
+        }
+
+        // 週移動
+        document.getElementById('prevWeekProvider').addEventListener('click', () => {
+            currentWeek--;
+            renderCalendar(true);
+            updatePendingBadge();
+        });
+
+        document.getElementById('nextWeekProvider').addEventListener('click', () => {
+            currentWeek++;
+            renderCalendar(true);
+            updatePendingBadge();
+        });
+
+        document.getElementById('prevWeekCustomer').addEventListener('click', () => {
+            currentWeek--;
+            renderCalendar(false);
+            updatePendingBadge();
+        });
+
+        document.getElementById('nextWeekCustomer').addEventListener('click', () => {
+            currentWeek++;
+            renderCalendar(false);
+            updatePendingBadge();
+        });
+
+        // グローバルマウスアップ
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                clearDragging();
+            }
+        });
+
+        // 共通モーダル: フォーカストラップ・Esc閉じ・Enter=主要アクション・背景スクロール固定
+        function openModal(modalEl, actions) {
+            const content = modalEl.querySelector('.modal-content');
+            const previouslyFocused = document.activeElement;
+            function closeInternal() {
+                modalEl.classList.remove('active');
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', onKeydown, true);
+                if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+            }
+            function onKeydown(e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeInternal();
+                } else if (e.key === 'Enter') {
+                    const tag = (e.target && e.target.tagName || '').toLowerCase();
+                    if (tag !== 'textarea') {
+                        e.preventDefault();
+                        if (actions && typeof actions.primary === 'function') actions.primary();
+                        closeInternal();
+                    }
+                } else if (e.key === 'Tab') {
+                    const focusables = content.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    const list = Array.from(focusables).filter(el => !el.hasAttribute('disabled'));
+                    if (list.length === 0) return;
+                    const first = list[0];
+                    const last = list[list.length - 1];
+                    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                }
+            }
+            modalEl.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', onKeydown, true);
+            // 初期フォーカスを主要ボタンがあればそこへ、なければコンテンツへ
+            const primary = modalEl.querySelector('.modal-footer .btn-primary');
+            setTimeout(() => { (primary || content).focus(); }, 0);
+        }
+
+        // クイックブロック（＋ボタン→時間選択シート）
+        function openQuickBlockSheet() {
+            const sheet = document.getElementById('quickBlockSheet');
+            const dateSelect = document.getElementById('quickBlockDate');
+            const startSelect = document.getElementById('quickBlockStart');
+            const durationSelect = document.getElementById('quickBlockDuration');
+            // 日付候補（当週）
+            dateSelect.innerHTML = '';
+            const dates = getWeekDates(currentWeek);
+            dates.forEach(d => {
+                const v = formatDate(d);
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = `${d.getMonth()+1}/${d.getDate()} (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+                dateSelect.appendChild(opt);
+            });
+            // 開始時刻候補（15分刻み）
+            startSelect.innerHTML = '';
+            for (let h = START_HOUR; h <= END_HOUR; h++) {
+                for (let m = 0; m < 60; m += INTERVAL) {
+                    const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                    const opt = document.createElement('option');
+                    opt.value = t; opt.textContent = t;
+                    startSelect.appendChild(opt);
+                }
+            }
+            durationSelect.value = String(defaultBlockDurationApplied);
+            const confirmBtn = document.getElementById('quickBlockConfirmBtn');
+            const onConfirm = () => {
+                const date = dateSelect.value;
+                const start = startSelect.value;
+                const duration = parseInt(durationSelect.value, 10);
+                addBlock(date, start, duration);
+                renderCalendar(true);
+                renderCalendar(false);
+                document.getElementById('quickBlockSheet').classList.remove('active');
+                document.body.style.overflow = '';
+            };
+            confirmBtn.onclick = onConfirm;
+            openModal(sheet, { primary: onConfirm });
+        }
+
+        function addBlock(dateStr, startTime, duration) {
+            const startMinutes = timeToMinutes(startTime);
+            const endMinutes = Math.min(startMinutes + duration, END_HOUR * 60);
+            const endTime = minutesToTime(endMinutes);
+            if (startMinutes >= END_HOUR * 60) {
+                alert(`営業時間は${END_HOUR}:00までです`);
+                return;
+            }
+            blocks.push({ id: Date.now(), date: dateStr, startTime, endTime });
+            persistState && persistState();
+        }
+
+        // 初期化
+        restoreState();
+        renderCalendar(true);
+        renderCalendar(false);
+        updatePendingBadge();
+    </script>
+</body>
+</html>
